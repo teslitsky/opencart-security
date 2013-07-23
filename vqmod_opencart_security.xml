@@ -1,0 +1,35 @@
+<modification>
+    <id>OpenCart Security Fixes</id>
+    <version>1.0.0</version>
+    <vqmver>2.0.0</vqmver>
+    <author><![CDATA[<a href="http://teslitsky.info/">Dmitry Teslitsky</a>]]></author>
+    <file name="catalog/controller/product/product.php">
+        <operation>
+            <search position="after"><![CDATA[$this->model_catalog_product->updateViewed($this->request->get['product_id']);]]></search>
+            <add><![CDATA[
+                // Product Update action secured
+                $this->session->data['csrf'] = md5(mt_rand());
+                $this->data['upload_path'] = $this->url->link(
+                    'product/product/upload',
+                    'csrf=' . $this->session->data['csrf'] . $url, 'SSL'
+                );
+            ]]></add>
+        </operation>
+        <operation>
+            <search position="after"><![CDATA[public function upload() {]]></search>
+            <add><![CDATA[
+                // Prevent upload exploit
+                if (!isset($this->request->get['csrf']) OR $this->request->get['csrf'] !== $this->session->data['csrf']) {
+                    header('Oops', null, 503);
+                    exit;
+                }
+            ]]></add>
+        </operation>
+    </file>
+    <file name="catalog/view/theme/*/template/product/product.tpl">
+        <operation>
+            <search position="replace"><![CDATA[index.php?route=product/product/upload]]></search>
+            <add><![CDATA[<?php echo $upload_path; ?>]]></add>
+        </operation>
+    </file>
+</modification>
